@@ -14,10 +14,18 @@ interface SessionEntry {
   result?: { insight: string; observation: string; topics: string[]; styles: string[] };
 }
 
-const topicColors: Record<string, string> = {
-  공간: "#7A9CB1", 일: "#45525A", 사람: "#CFE2CF", 취미: "#C2C9A6",
-  여행: "#C2C9A6", 음식: "#A5B7C5", 자연: "#CFE2CF", 패션: "#7A9CB1",
+const TOPIC_COLOR_MAP: Record<string, string> = {
+  공간: "#7A9CB1", 여행: "#C2C9A6", 일: "#707980", 사람: "#CFE2CF",
+  음식: "#C2C9A6", 취미: "#A5B7C5", 자연: "#CFE2CF", 패션: "#7A9CB1",
 };
+const BRAND_COLORS = ["#7A9CB1", "#A5B7C5", "#C2C9A6", "#CFE2CF"];
+
+function topicColor(topic: string): string {
+  if (TOPIC_COLOR_MAP[topic]) return TOPIC_COLOR_MAP[topic];
+  let hash = 0;
+  for (let i = 0; i < topic.length; i++) hash = topic.charCodeAt(i) + ((hash << 5) - hash);
+  return BRAND_COLORS[Math.abs(hash) % BRAND_COLORS.length];
+}
 
 export default function SessionsPage() {
   const router = useRouter();
@@ -53,8 +61,7 @@ export default function SessionsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
             {sessions.map((s) => {
-              const mainTopic = s.result?.topics?.[0] || "";
-              const bgColor = topicColors[mainTopic] || "#707980";
+              const bgColor = topicColor(s.result?.topics?.[0] || "");
               return (
                 <button
                   key={s.id}
