@@ -60,6 +60,8 @@ export default function SessionDetailPage() {
     if (stored) setSession(JSON.parse(stored));
     const msgs = localStorage.getItem(`droppi_messages_${sessionId}`);
     if (msgs) setMessages(JSON.parse(msgs));
+    const savedSummary = localStorage.getItem(`droppi_summary_${sessionId}`);
+    if (savedSummary) setSummary(savedSummary);
   }, [sessionId]);
 
   const insights = messages.filter((m) => m.type === "insight" && m.insight);
@@ -148,6 +150,7 @@ export default function SessionDetailPage() {
                   });
                   const data = await res.json();
                   setSummary(data.message);
+                  localStorage.setItem(`droppi_summary_${sessionId}`, data.message);
                 } catch (err) {
                   console.error(err);
                 } finally {

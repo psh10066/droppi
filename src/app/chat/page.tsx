@@ -22,7 +22,11 @@ function ChatContent() {
   const [isSending, setIsSending] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const sessions = JSON.parse(localStorage.getItem("droppi_sessions") || "[]");
+    return sessions.some((s: any) => s.id === searchParams.get("sessionId"));
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -178,6 +182,7 @@ function ChatContent() {
         summary: data.message?.slice(0, 100),
       });
       localStorage.setItem("droppi_sessions", JSON.stringify(sessions));
+      localStorage.setItem(`droppi_summary_${sessionId}`, data.message);
       setSaved(true);
     } catch (err) {
       console.error("Save error:", err);

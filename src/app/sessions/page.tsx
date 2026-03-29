@@ -28,8 +28,10 @@ export default function SessionsPage() {
     const loaded = keys.map((key) => {
       const id = key.replace("droppi_session_", "");
       const data = JSON.parse(localStorage.getItem(key) || "{}");
-      const dropData = data.type === "image" ? data.content : null;
-      return { id, type: data.type || "text", createdAt: data.createdAt || "", result: data.result, imageUrl: dropData || data.imageUrl };
+      const imageData = data.type === "image" || data.hasImage
+        ? localStorage.getItem(`droppi_image_${id}`) || data.imageUrl
+        : null;
+      return { id, type: data.type || "text", createdAt: data.createdAt || "", result: data.result, imageUrl: imageData || undefined };
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setSessions(loaded);
   }, []);
