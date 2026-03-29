@@ -36,18 +36,39 @@ interface SessionSummary {
 interface ProfileUpdate {
   repeatingKeywords: string[];
   insightClusters: InsightCluster[];
-  essenceChange?: EssenceChange;
+  essenceUpdate?: {
+    before: string;   // previous headline
+    after: string;    // new headline
+    narrative: string; // "공간에서 사람 쪽으로 이동"
+  };
   tensionDecay: TensionItem[];
+  monthlyFlow: MonthlyFlow;
+}
+
+interface MonthlyFlow {
+  period: string;                    // "2026-03"
+  topicDistribution: TagCount[];     // [{tag: "여행", count: 5}, {tag: "음식", count: 3}]
+  styleDistribution: TagCount[];     // [{tag: "따뜻한", count: 4}, {tag: "빈티지", count: 3}]
+  dominantTopic: string;             // "여행"
+  dominantStyle: string;             // "따뜻한"
+  previousComparison?: string;       // "지난달은 공간이 주였는데, 이번 달은 여행으로 옮겨감"
+  newTags: string[];                 // 이번 달에 처음 등장한 태그
+}
+
+interface TagCount {
+  tag: string;
+  count: number;
 }
 
 interface WeeklyReport {
   period: string;
-  movingToward: string;       // "이번 주 관심사의 방향"
-  previousComparison?: string; // "지난주 대비 변화"
-  topKeywords: string[];
+  movingToward: string;
+  previousComparison?: string;
+  topTopics: TagCount[];        // was topKeywords
+  topStyles: TagCount[];        // NEW
   newInsights: InsightLog[];
   patternUpdate?: string;
-  timelineEvents?: TimelineEntry[];  // 이 기간의 변화 이벤트
+  tagShift?: string;            // "여행에서 음식 쪽으로 관심 이동"
 }
 ```
 
@@ -85,10 +106,10 @@ interface InsightCluster {
 
 ```typescript
 interface EssenceChange {
-  before: EssenceProfile;
-  after: EssenceProfile;
-  changedDimensions: string[];
-  narrative: string;  // "미니멀에서 따뜻한 쪽으로"
+  before: string;       // previous headline
+  after: string;        // new headline
+  narrative: string;    // "미니멀에서 따뜻한 쪽으로"
+  triggerTags: string[]; // 변화를 촉발한 태그들
 }
 ```
 
@@ -182,6 +203,32 @@ interface ThemeCluster {
 
 ---
 
+## 시간 흐름 (Temporal Flow)
+
+읽기가 쌓이면서 주제·스타일의 흐름이 보인다. 단순 시간순 나열이 아니라, 어떤 분야와 감각이 언제 두드러졌는지 보여준다.
+
+### 월별 흐름
+
+매월 주제 태그와 스타일 태그의 분포를 집계한다.
+
+예시:
+- 3월: 여행 40%, 음식 30%, 공간 20% / 스타일: 따뜻한 우세
+- 4월: 일 50%, 사람 25% / 스타일: 묵직한 우세
+- → "3월에는 따뜻한 여행·음식 위주였는데, 4월에 일과 사람 쪽으로 넘어감"
+
+### 흐름 생성 규칙
+1. 해당 월의 모든 읽기에서 태그 집계
+2. 상위 3개 주제 + 상위 3개 스타일 추출
+3. 이전 월과 비교 → 이동 방향 서술
+4. 새로 등장한 태그 감지
+5. 사라진 태그 감지 (이전 월 상위에 있다가 이번 월에 0인 것)
+
+### 톤
+"이번 달은 여기를 맴돌고 있었어요" 정도의 가벼움. 진단하지 않음. 관찰만.
+"여행에서 일로 넘어갔다"는 좋고 나쁨이 아니라 움직임일 뿐.
+
+---
+
 ## 시스템 프롬프트
 
 ```
@@ -191,23 +238,27 @@ interface ThemeCluster {
 
 ### 반복 키워드: 의미적 반복 감지. 사용자 표현 보존.
 ### 클러스터링: 사용자 언어로 이름. 성장/정체 판단.
-### 에센스 변화: 어떤 축이 바뀌었는지 + 내러티브 한 문장.
+### 에센스 변화: 한 줄이 어떻게 바뀌었는지 + 내러티브 한 문장.
 ### 긴장 감쇠: Active/Structural/Dormant/Absorbed 규칙 적용.
 ### 리포트: "이번 주 당신은 여기를 맴돌고 있었어요" 톤. 이전 기간 대비 변화 포함.
+### 시간 흐름: 월별 주제·스타일 분포 집계. 이전 월 대비 이동 방향.
 
 ## 출력 형식
 {
   "repeatingKeywords": [...],
   "insightClusters": [...],
-  "essenceChange": null 또는 {...},
+  "essenceUpdate": null 또는 {...},
   "tensionDecay": [...],
+  "monthlyFlow": {...},
   "weeklyReport": {
     "period": "...",
     "movingToward": "...",
     "previousComparison": "지난주 대비 ...",
-    "topKeywords": [...],
+    "topTopics": [...],
+    "topStyles": [...],
     "newInsights": [...],
-    "patternUpdate": "..."
+    "patternUpdate": "...",
+    "tagShift": "..."
   }
 }
 

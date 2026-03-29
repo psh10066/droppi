@@ -27,6 +27,7 @@ interface MetaProfile {
   insights: InsightLog[];
   sessions: SessionSummary[];
   tensions: TensionItem[];
+  monthlyFlows: MonthlyFlow[];
 
   // === 변화 추적 ===
   essenceHistory: EssenceChange[];
@@ -53,7 +54,7 @@ interface Pattern {
   description: string;          // "만드는 건 빠른데 닫는 게 안 된다"
   confirmedCount: number;
   firstSeen: string;
-  connectedEssence?: string;    // "volume", "texture" 등
+  connectedEssence?: string;    // 관련 에센스 헤드라인 키워드
   status: 'active' | 'challenged' | 'broken';
 }
 ```
@@ -88,6 +89,28 @@ interface TensionItem {
   status: "active" | "structural" | "dormant" | "absorbed";
   lastMentioned: string;
   sessionCount: number;
+}
+```
+
+### EssenceChange
+```typescript
+interface EssenceChange {
+  before: string;       // previous headline
+  after: string;        // new headline
+  narrative: string;    // "미니멀에서 따뜻한 쪽으로"
+  triggerTags: string[];
+}
+```
+
+### MonthlyFlow
+```typescript
+interface MonthlyFlow {
+  period: string;                    // "2026-03"
+  topicDistribution: TagCount[];
+  styleDistribution: TagCount[];
+  dominantTopic: string;
+  dominantStyle: string;
+  previousComparison?: string;
 }
 ```
 
@@ -126,7 +149,7 @@ interface TimelineEntry {
 
 | 트리거 | 업데이트 대상 | 조건 |
 |--------|-------------|------|
-| 새 사진 업로드 | `essence`, `essenceHistory`, `timeline` | 이전 에센스와 비교 |
+| 새 읽기 추가 | `essence`, `essenceHistory`, `monthlyFlows` | 이전 에센스와 비교, 태그 집계 갱신 |
 | 대화에서 발견 | `insights`, `keywordTrend` | 즉시 |
 | 패턴 3회 확인 | `currentFrame.patterns` | confirmedCount 증가 |
 | 패턴 깨짐 감지 | `breakthroughs`, `timeline` | 사용자 확인 후 |
@@ -145,7 +168,6 @@ interface TimelineEntry {
       {
         "description": "만드는 건 빠른데 닫는 게 안 된다",
         "confirmedCount": 5,
-        "connectedEssence": "volume",
         "status": "active"
       },
       {
@@ -199,11 +221,11 @@ Supabase 테이블에 분산 저장. MetaProfile은 클라이언트에서 여러
 
 ```typescript
 // Supabase 테이블 → MetaProfile 매핑
-// essence         → essence_profiles 테이블 (최신 1건)
+// essence         → essence_profiles 테이블 (최신 1건, dimensions 없음)
 // essenceHistory  → essence_profiles 테이블 (전체 이력)
+// monthlyFlows    → monthly_flows 테이블 (월별 태그 분포)
 // insights        → insights 테이블
 // sessions        → sessions + messages 테이블
-// themes         → theme_clusters 테이블
 // timeline        → 각 테이블의 created_at 기반 조합
 ```
 

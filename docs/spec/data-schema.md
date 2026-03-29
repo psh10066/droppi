@@ -29,10 +29,9 @@ create table essence_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
   headline text not null,              -- "손 닿는 곳의 아늑함을 모으는 사람"
-  dimensions jsonb not null,           -- { volume, texture, opacity, tactility, weight, temperature }
   palette text[] not null,             -- ["#C4A882", "#D4A5A5", ...]
-  observation text,                     -- 관찰 사실 ("사진이 전부 가까이에 있는 것들이거든요")
-  first_question text,                 -- 열린 호기심 질문 ("뭐가 끌렸어요?")
+  topic_tags text[],                   -- 가장 많이 나온 주제 태그 top 5
+  style_tags text[],                   -- 가장 많이 나온 스타일 태그 top 5
   created_at timestamptz default now()
 );
 ```
@@ -115,7 +114,27 @@ create table readings (
   insight text,                        -- "등 뒤가 막혀있어야 안심이 되는 거 아닐까"
   observation text,                    -- 관찰 사실
   tags text[],                         -- ["#안전한구석", "#관찰자"]
+  topic_tags text[],                   -- 주제 태그 (예: ["공간", "여행"])
+  style_tags text[],                   -- 스타일 태그 (예: ["따뜻한", "고요한"])
   had_conversation boolean default false,
+  created_at timestamptz default now()
+);
+```
+
+### monthly_flows
+
+월별 흐름 분석 결과.
+
+```sql
+create table monthly_flows (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  period text not null,                -- "2026-03"
+  topic_distribution jsonb not null,   -- [{"tag": "여행", "count": 5}, ...]
+  style_distribution jsonb not null,   -- [{"tag": "따뜻한", "count": 4}, ...]
+  dominant_topic text,
+  dominant_style text,
+  previous_comparison text,
   created_at timestamptz default now()
 );
 ```
@@ -171,26 +190,13 @@ const { error } = await supabase
 ## TypeScript 인터페이스 (클라이언트용)
 
 ```typescript
-interface Dimension {
-  label: string;        // "양감", "질감", "투명도", "촉각", "무게", "온도"
-  description: string;  // "채워진 둥근 볼륨"
-}
-
 interface EssenceProfile {
   id: string;
   user_id: string;
   headline: string;
-  dimensions: {
-    volume: Dimension;
-    texture: Dimension;
-    opacity: Dimension;
-    tactility: Dimension;
-    weight: Dimension;
-    temperature: Dimension;
-  };
   palette: string[];
-  observation: string;
-  first_question: string;
+  topTopics: string[];   // 가장 많이 나온 주제 태그 top 5
+  topStyles: string[];   // 가장 많이 나온 스타일 태그 top 5
   created_at: string;
 }
 
@@ -243,7 +249,21 @@ interface Reading {
   insight: string;
   observation: string;
   tags: string[];
+  topic_tags: string[];   // 주제 태그 (예: ["공간", "여행"])
+  style_tags: string[];   // 스타일 태그 (예: ["따뜻한", "고요한"])
   had_conversation: boolean;
+  created_at: string;
+}
+
+interface MonthlyFlow {
+  id: string;
+  user_id: string;
+  period: string;          // "2026-03"
+  topic_distribution: { tag: string; count: number }[];
+  style_distribution: { tag: string; count: number }[];
+  dominant_topic: string | null;
+  dominant_style: string | null;
+  previous_comparison: string | null;
   created_at: string;
 }
 ```

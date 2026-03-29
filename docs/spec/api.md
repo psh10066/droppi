@@ -16,21 +16,16 @@
 {
   "reading": {
     "insight": "등 뒤가 막혀있어야 안심이 되는 거 아닐까",
-    "observation": "사진이 전부 가까이에 있는 것들이거든요."
+    "observation": "사진 속 카페는 구석 자리, 낮은 조명, 혼자 앉는 크기",
+    "topicTags": ["공간"],
+    "styleTags": ["따뜻한", "고요한"],
+    "firstQuestion": "뭔가 떠오르면 말해줘요"
   },
   "essence": {
-    "headline": "손 닿는 곳의 아늑함을 모으는 사람",
-    "dimensions": {
-      "volume": { "label": "양감", "description": "채워진 둥근 볼륨" },
-      "texture": { "label": "질감", "description": "도자기 유약, 나무결" },
-      "opacity": { "label": "투명도", "description": "불투명. 빛을 품는 물질들" },
-      "tactility": { "label": "촉각", "description": "따뜻하다" },
-      "weight": { "label": "무게", "description": "탁자 위에 올려진 존재감" },
-      "temperature": { "label": "온도", "description": "미지근 ~ 따뜻" }
-    },
+    "headline": "안전한 구석에서 전체를 보는 사람",
     "palette": ["#C4A882", "#D4A5A5", "#8FA68E", "#FAF6F1", "#3D3632"],
-    "observation": "사진이 전부 가까이에 있는 것들이거든요.",
-    "firstQuestion": "뭐가 끌렸어요 — 질감? 색감? 그때 기억?"
+    "topTopics": ["공간"],
+    "topStyles": ["따뜻한", "고요한"]
   }
 }
 ```
@@ -78,12 +73,25 @@
 
 ```json
 {
-  "essence": { "..." },
+  "essence": {
+    "headline": "...",
+    "palette": ["..."],
+    "topTopics": ["공간", "여행", "음식"],
+    "topStyles": ["따뜻한", "고요한", "미니멀"]
+  },
   "essenceHistory": [
-    { "date": "2026-03-25", "headline": "...", "dimensions": { "..." } }
+    { "date": "2026-03-25", "headline": "..." }
   ],
-  "insights": [ "..." ],
-  "keywords": ["#완성", "#혼자", "#속도"]
+  "insights": ["..."],
+  "keywords": ["#공간", "#따뜻한"],
+  "monthlyFlow": {
+    "period": "2026-03",
+    "topicDistribution": [{"tag": "여행", "count": 5}, {"tag": "음식", "count": 3}],
+    "styleDistribution": [{"tag": "따뜻한", "count": 4}],
+    "dominantTopic": "여행",
+    "dominantStyle": "따뜻한",
+    "previousComparison": "지난달은 공간이 주였는데, 이번 달은 여행으로 옮겨감"
+  }
 }
 ```
 
