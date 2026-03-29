@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .viewer-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation bar */
+    .nav-bar {
+      height: 48px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .nav-bar button {
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .nav-bar button:hover {
+      background: #555;
+    }
+
+    .nav-bar button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .slide-counter {
+      color: #aaa;
+      font-size: 14px;
+      font-weight: 500;
+      min-width: 60px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-fullscreen {
+      position: absolute;
+      right: 16px;
+      background: transparent !important;
+      font-size: 18px;
+      padding: 6px 10px !important;
+    }
+
+    /* Slide viewport */
+    .slide-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .slide-scaler {
+      width: 720pt;
+      height: 405pt;
+      position: relative;
+      transform-origin: center center;
+    }
+
+    /* Slide frames (iframes) */
+    .slide-frame {
+      position: absolute;
+      inset: 0;
+      width: 720pt;
+      height: 405pt;
+      border: none;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .slide-frame.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewer-container">
+    <!-- Navigation -->
+    <div class="nav-bar">
+      <button id="btn-prev" title="Previous (\u2190)">Prev</button>
+      <span class="slide-counter" id="counter">1 / 9</span>
+      <button id="btn-next" title="Next (\u2192)">Next</button>
+      <button class="btn-fullscreen" id="btn-fs" title="Fullscreen (F)">&#x26F6;</button>
+    </div>
+
+    <!-- Slide viewport -->
+    <div class="slide-viewport" id="viewport">
+      <div class="slide-scaler" id="scaler">
+        <iframe class="slide-frame active" data-slide="1" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-01.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #faf8f5;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+        <p style=&quot;color: #fff; font-size: 11pt; font-weight: 700;&quot;>d</p>
+      </div>
+      <p style=&quot;font-size: 11pt; font-weight: 600; color: #2d2a26;&quot;>droppi</p>
+    </div>
+    <p style=&quot;display: inline-block; padding: 4pt 10pt; border: 1px solid #ddd8d0; border-radius: 12pt; font-size: 9pt; font-weight: 500; color: #6b6560;&quot;>RALPHTHON SEOUL</p>
+  </div>
+
+  <!-- 메인 타이틀 -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: visible;&quot;>
+    <h1 style=&quot;font-size: 52pt; font-weight: 600; color: #2d2a26; letter-spacing: -0.03em; line-height: 1.2;&quot;>
+      droppi
+    </h1>
+    <p style=&quot;font-size: 18pt; color: #6b6560; margin-top: 16pt; font-weight: 300;&quot;>
+      뭐든 넣으면 당신이 보입니다.
+    </p>
+  </div>
+
+  <!-- 푸터 -->
+  <div style=&quot;display: flex; gap: 48pt;&quot;>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #6b6560; margin-bottom: 4pt;&quot;>Team</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #2d2a26;&quot;>Gowider</p>
+    </div>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #6b6560; margin-bottom: 4pt;&quot;>Members</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #2d2a26;&quot;>이호준 · 최다정 · 임서영 · 김보경</p>
+    </div>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #6b6560; margin-bottom: 4pt;&quot;>GitHub</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #2d2a26;&quot;>psh10066/ralphthon</p>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="2" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-02.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #2d2a26;
+      padding: 48pt;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <!-- 섹션 태그 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center;&quot;>
+    <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #c45a3b; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>PROBLEM</p>
+    <p style=&quot;font-size: 10pt; color: #6b6560;&quot;>02</p>
+  </div>
+
+  <!-- 메인 -->
+  <div>
+    <h2 style=&quot;font-size: 28pt; font-weight: 600; color: #ffffff; line-height: 1.4; letter-spacing: -0.01em;&quot;>
+      사람들은 뭘 좋아하는지는 안다.<br>
+      왜 좋아하는지는 모른다.
+    </h2>
+    <div style=&quot;margin-top: 32pt; display: flex; gap: 24pt;&quot;>
+      <div style=&quot;flex: 1; background: rgba(255,255,255,0.06); border-radius: 8pt; padding: 20pt;&quot;>
+        <p style=&quot;font-size: 32pt; font-weight: 600; color: #c45a3b;&quot;>200장</p>
+        <p style=&quot;font-size: 11pt; color: #888; margin-top: 6pt;&quot;>핀터레스트 저장</p>
+      </div>
+      <div style=&quot;flex: 1; background: rgba(255,255,255,0.06); border-radius: 8pt; padding: 20pt;&quot;>
+        <p style=&quot;font-size: 32pt; font-weight: 600; color: #c45a3b;&quot;>3,000장</p>
+        <p style=&quot;font-size: 11pt; color: #888; margin-top: 6pt;&quot;>카메라롤 사진</p>
+      </div>
+      <div style=&quot;flex: 1; background: rgba(255,255,255,0.06); border-radius: 8pt; padding: 20pt;&quot;>
+        <p style=&quot;font-size: 32pt; font-weight: 600; color: #c45a3b;&quot;>4글자</p>
+        <p style=&quot;font-size: 11pt; color: #888; margin-top: 6pt;&quot;>MBTI가 나의 전부</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 한 줄 -->
+  <p style=&quot;font-size: 14pt; color: #6b6560; font-weight: 300;&quot;>
+    다 &quot;나&quot;인데 — 아무도 그걸 읽어주지 않았다.
+  </p>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="3" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-03.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #faf8f5;
+      padding: 64pt;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <p style=&quot;font-size: 10pt; color: #c45a3b; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 24pt;&quot;>INSIGHT</p>
+  <h2 style=&quot;font-size: 30pt; font-weight: 500; color: #2d2a26; letter-spacing: -0.01em; line-height: 1.5; max-width: 520pt;&quot;>
+    좋아하는 것들이<br>이미 당신을 말하고 있었다.
+  </h2>
+  <p style=&quot;font-size: 14pt; color: #6b6560; margin-top: 28pt; line-height: 1.7; max-width: 440pt;&quot;>
+    같은 사진을 봐도 사람마다 끌리는 게 다르다.<br>
+    그 끌림에는 패턴이 있다.<br><br>
+    끌린 것들의 교집합에 &quot;지금의 나&quot;가 있다.
+  </p>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="4" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-04.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #c45a3b; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>SOLUTION</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #2d2a26;&quot;>진단이 아니라 관찰</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #999;&quot;>04</p>
+  </div>
+
+  <!-- 플로우 -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; gap: 16pt;&quot;>
+    <!-- 흐름도 -->
+    <div style=&quot;display: flex; align-items: center; gap: 12pt; margin-bottom: 8pt;&quot;>
+      <div style=&quot;background: #f0ebe3; border-radius: 8pt; padding: 12pt 20pt;&quot;>
+        <p style=&quot;font-size: 12pt; font-weight: 600; color: #2d2a26;&quot;>뭐든 하나 drop</p>
+        <p style=&quot;font-size: 9pt; color: #6b6560;&quot;>사진 · 글 · 링크 · 메모</p>
+      </div>
+      <p style=&quot;font-size: 16pt; color: #ddd8d0;&quot;>→</p>
+      <div style=&quot;background: #f0ebe3; border-radius: 8pt; padding: 12pt 20pt;&quot;>
+        <p style=&quot;font-size: 12pt; font-weight: 600; color: #2d2a26;&quot;>AI가 읽는다</p>
+        <p style=&quot;font-size: 9pt; color: #6b6560;&quot;>내용 + 무드를 같이</p>
+      </div>
+      <p style=&quot;font-size: 16pt; color: #ddd8d0;&quot;>→</p>
+      <div style=&quot;background: #f0ebe3; border-radius: 8pt; padding: 12pt 20pt;&quot;>
+        <p style=&quot;font-size: 12pt; font-weight: 600; color: #2d2a26;&quot;>인사이트 + 질문</p>
+        <p style=&quot;font-size: 9pt; color: #6b6560;&quot;>반응하면 대화 시작</p>
+      </div>
+    </div>
+
+    <!-- 에센스 결과 예시 -->
+    <div style=&quot;background: #2d2a26; border-radius: 12pt; padding: 28pt; flex: 1; display: flex; flex-direction: column; justify-content: center;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; margin-bottom: 12pt;&quot;>에센스 결과 예시</p>
+      <p style=&quot;font-size: 24pt; font-weight: 500; color: #ffffff; line-height: 1.4; letter-spacing: -0.01em;&quot;>
+        &quot;손 닿는 곳의 아늑함을 모으는 사람&quot;
+      </p>
+      <div style=&quot;margin-top: 20pt; display: flex; gap: 24pt;&quot;>
+        <div>
+          <p style=&quot;font-size: 9pt; color: #6b6560;&quot;>관찰</p>
+          <p style=&quot;font-size: 12pt; color: #888; margin-top: 4pt;&quot;>사진이 전부 가까이에 있는 것들이거든요.</p>
+        </div>
+        <div>
+          <p style=&quot;font-size: 9pt; color: #6b6560;&quot;>열린 질문</p>
+          <p style=&quot;font-size: 12pt; color: #c45a3b; margin-top: 4pt;&quot;>뭐가 끌렸어요?</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="5" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-05.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  </style>
+</head>
+<body>
+  <!-- 왼쪽: 글 → 질문 변환 -->
+  <div style=&quot;background: #2d2a26; padding: 40pt; display: flex; flex-direction: column; justify-content: center;&quot;>
+    <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #c45a3b; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600; align-self: flex-start; margin-bottom: 24pt;&quot;>DEPTH</p>
+
+    <p style=&quot;font-size: 10pt; color: #6b6560; margin-bottom: 8pt;&quot;>넣은 글</p>
+    <p style=&quot;font-size: 16pt; color: #ffffff; font-weight: 500; line-height: 1.5; margin-bottom: 24pt;&quot;>
+      &quot;속도를 늦춰야 빨라진다&quot;
+    </p>
+
+    <p style=&quot;font-size: 10pt; color: #6b6560; margin-bottom: 8pt;&quot;>돌아온 질문</p>
+    <p style=&quot;font-size: 14pt; color: #c45a3b; font-weight: 400; line-height: 1.5;&quot;>
+      &quot;이 문장에 걸렸다면,<br>지금 뭘 빠르게 하려다 막혀있어?&quot;
+    </p>
+  </div>
+
+  <!-- 오른쪽: 전환 사례 -->
+  <div style=&quot;padding: 40pt; display: flex; flex-direction: column; justify-content: center;&quot;>
+    <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #2d2a26; margin-bottom: 24pt; line-height: 1.3;&quot;>
+      글의 언어가<br>나의 언어로 바뀐다
+    </h2>
+
+    <div style=&quot;margin-bottom: 20pt;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; margin-bottom: 6pt;&quot;>글이 말한 것</p>
+      <p style=&quot;font-size: 13pt; color: #2d2a26; line-height: 1.6;&quot;>&quot;Closer 근육이 필요하다&quot;</p>
+    </div>
+
+    <div style=&quot;width: 24pt; height: 1pt; background: #c45a3b; margin-bottom: 20pt;&quot;></div>
+
+    <div>
+      <p style=&quot;font-size: 10pt; color: #6b6560; margin-bottom: 6pt;&quot;>내가 발견한 것</p>
+      <p style=&quot;font-size: 15pt; color: #2d2a26; font-weight: 600; line-height: 1.6;&quot;>
+        &quot;준비 안 된 채로 꺼내는<br>연습이 필요해.&quot;
+      </p>
+    </div>
+
+    <p style=&quot;font-size: 11pt; color: #6b6560; margin-top: 24pt; line-height: 1.6;&quot;>
+      사진에서 읽은 &quot;나&quot;와<br>글에서 발견한 &quot;나&quot;가 하나로 쌓인다.
+    </p>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="6" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-06.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #faf8f5;
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #c45a3b; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>MOAT</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #2d2a26;&quot;>축적 = 해자</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #999;&quot;>06</p>
+  </div>
+
+  <!-- 비교 테이블 -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; gap: 12pt;&quot;>
+    <!-- 헤더 행 -->
+    <div style=&quot;display: grid; grid-template-columns: 100pt 1fr 1fr 1fr; gap: 8pt;&quot;>
+      <div></div>
+      <div style=&quot;background: #f0ebe3; border-radius: 6pt; padding: 10pt 14pt; text-align: center;&quot;>
+        <p style=&quot;font-size: 11pt; font-weight: 500; color: #6b6560;&quot;>MBTI</p>
+      </div>
+      <div style=&quot;background: #f0ebe3; border-radius: 6pt; padding: 10pt 14pt; text-align: center;&quot;>
+        <p style=&quot;font-size: 11pt; font-weight: 500; color: #6b6560;&quot;>ChatGPT</p>
+      </div>
+      <div style=&quot;background: #2d2a26; border-radius: 6pt; padding: 10pt 14pt; text-align: center;&quot;>
+        <p style=&quot;font-size: 11pt; font-weight: 600; color: #c45a3b;&quot;>droppi</p>
+      </div>
+    </div>
+    <!-- 입력 -->
+    <div style=&quot;display: grid; grid-template-columns: 100pt 1fr 1fr 1fr; gap: 8pt;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; padding: 10pt 0; font-weight: 500;&quot;>입력</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt;&quot;>선택지</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt;&quot;>텍스트</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt; font-weight: 600;&quot;>사진 + 글 + 메모</p>
+    </div>
+    <!-- 결과 -->
+    <div style=&quot;display: grid; grid-template-columns: 100pt 1fr 1fr 1fr; gap: 8pt;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; padding: 10pt 0; font-weight: 500;&quot;>결과</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt;&quot;>4글자</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt;&quot;>요약</p>
+      <p style=&quot;font-size: 12pt; color: #2d2a26; padding: 10pt 14pt; font-weight: 600;&quot;>에센스 + 질문</p>
+    </div>
+    <!-- 10회 후 -->
+    <div style=&quot;display: grid; grid-template-columns: 100pt 1fr 1fr 1fr; gap: 8pt;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; padding: 10pt 0; font-weight: 500;&quot;>10회 후</p>
+      <p style=&quot;font-size: 12pt; color: #999; padding: 10pt 14pt;&quot;>같은 결과</p>
+      <p style=&quot;font-size: 12pt; color: #999; padding: 10pt 14pt;&quot;>리셋</p>
+      <p style=&quot;font-size: 12pt; color: #c45a3b; padding: 10pt 14pt; font-weight: 600;&quot;>패턴이 보인다</p>
+    </div>
+    <!-- 30회 후 -->
+    <div style=&quot;display: grid; grid-template-columns: 100pt 1fr 1fr 1fr; gap: 8pt; background: rgba(196,90,59,0.06); border-radius: 8pt; padding: 4pt 0;&quot;>
+      <p style=&quot;font-size: 10pt; color: #6b6560; padding: 10pt 0 10pt 8pt; font-weight: 500;&quot;>30회 후</p>
+      <p style=&quot;font-size: 12pt; color: #999; padding: 10pt 14pt;&quot;>같은 결과</p>
+      <p style=&quot;font-size: 12pt; color: #999; padding: 10pt 14pt;&quot;>불가능</p>
+      <p style=&quot;font-size: 14pt; color: #c45a3b; padding: 10pt 14pt; font-weight: 700;&quot;>변화사가 존재</p>
+    </div>
+  </div>
+
+  <p style=&quot;font-size: 12pt; color: #6b6560; margin-top: 12pt;&quot;>
+    &quot;나의 변화사&quot;가 존재하는 것. 이게 해자다.
+  </p>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="7" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-07.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #c45a3b; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>VALIDATION</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #2d2a26;&quot;>28세션, 2개월. 직접 썼다.</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #999;&quot;>07</p>
+  </div>
+
+  <!-- 전환 사례 3개 -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; gap: 12pt;&quot;>
+    <div style=&quot;flex: 1; background: #faf8f5; border-radius: 10pt; padding: 18pt 24pt; display: flex; align-items: center; gap: 20pt;&quot;>
+      <div style=&quot;width: 28pt; height: 28pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+        <p style=&quot;color: #fff; font-size: 12pt; font-weight: 600;&quot;>1</p>
+      </div>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 13pt; color: #6b6560;&quot;>&quot;속도를 늦춰야 빨라진다&quot;</p>
+          <p style=&quot;font-size: 13pt; color: #ddd8d0;&quot;>→</p>
+          <p style=&quot;font-size: 13pt; color: #2d2a26; font-weight: 600;&quot;>&quot;준비 안 된 채로 꺼내는 연습이 필요해&quot;</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #999;&quot;>남의 글이 나의 언어로 바뀐 순간</p>
+      </div>
+    </div>
+
+    <div style=&quot;flex: 1; background: #faf8f5; border-radius: 10pt; padding: 18pt 24pt; display: flex; align-items: center; gap: 20pt;&quot;>
+      <div style=&quot;width: 28pt; height: 28pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+        <p style=&quot;color: #fff; font-size: 12pt; font-weight: 600;&quot;>2</p>
+      </div>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 13pt; color: #6b6560;&quot;>블로그 글 3편</p>
+          <p style=&quot;font-size: 13pt; color: #ddd8d0;&quot;>→</p>
+          <p style=&quot;font-size: 13pt; color: #2d2a26; font-weight: 600;&quot;>업무 전제가 통째로 전환</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #999;&quot;>글이 촉매, 발견은 안에서 일어남</p>
+      </div>
+    </div>
+
+    <div style=&quot;flex: 1; background: #faf8f5; border-radius: 10pt; padding: 18pt 24pt; display: flex; align-items: center; gap: 20pt;&quot;>
+      <div style=&quot;width: 28pt; height: 28pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+        <p style=&quot;color: #fff; font-size: 12pt; font-weight: 600;&quot;>3</p>
+      </div>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 10pt; margin-bottom: 4pt;&quot;>
+          <p style=&quot;font-size: 13pt; color: #6b6560;&quot;>경쟁사 리뷰</p>
+          <p style=&quot;font-size: 13pt; color: #ddd8d0;&quot;>→</p>
+          <p style=&quot;font-size: 13pt; color: #2d2a26; font-weight: 600;&quot;>제품 프레임 재정의</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #999;&quot;>외부 자극이 내 일의 프레임을 바꿈</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 인용 -->
+  <div style=&quot;margin-top: 16pt; padding-top: 12pt; border-top: 1px solid #f0ebe3;&quot;>
+    <p style=&quot;font-size: 13pt; color: #2d2a26; font-weight: 400; font-style: italic;&quot;>
+      &quot;글은 촉매였고, 발견은 나 안에서 일어났다.&quot;
+    </p>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="8" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-08.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #ffffff;
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #2d2a26; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>RALPH SETUP</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #2d2a26;&quot;>나의 랄프 세팅</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #999;&quot;>08</p>
+  </div>
+
+  <!-- 기술 + 랄프 세팅 -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt;&quot;>
+    <!-- 왼쪽: 기술 스택 -->
+    <div>
+      <p style=&quot;font-size: 10pt; color: #6b6560; font-weight: 500; margin-bottom: 16pt;&quot;>기술 스택</p>
+      <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+        <div style=&quot;background: #faf8f5; border-radius: 8pt; padding: 14pt 18pt; display: flex; justify-content: space-between; align-items: center;&quot;>
+          <p style=&quot;font-size: 12pt; font-weight: 500; color: #2d2a26;&quot;>AI Engine</p>
+          <p style=&quot;font-size: 11pt; color: #6b6560;&quot;>Claude Vision + Text API</p>
+        </div>
+        <div style=&quot;background: #faf8f5; border-radius: 8pt; padding: 14pt 18pt; display: flex; justify-content: space-between; align-items: center;&quot;>
+          <p style=&quot;font-size: 12pt; font-weight: 500; color: #2d2a26;&quot;>Frontend</p>
+          <p style=&quot;font-size: 11pt; color: #6b6560;&quot;>Next.js + TypeScript</p>
+        </div>
+        <div style=&quot;background: #faf8f5; border-radius: 8pt; padding: 14pt 18pt; display: flex; justify-content: space-between; align-items: center;&quot;>
+          <p style=&quot;font-size: 12pt; font-weight: 500; color: #2d2a26;&quot;>Backend</p>
+          <p style=&quot;font-size: 11pt; color: #6b6560;&quot;>Supabase (Postgres)</p>
+        </div>
+        <div style=&quot;background: #faf8f5; border-radius: 8pt; padding: 14pt 18pt; display: flex; justify-content: space-between; align-items: center;&quot;>
+          <p style=&quot;font-size: 12pt; font-weight: 500; color: #2d2a26;&quot;>Channel</p>
+          <p style=&quot;font-size: 11pt; color: #6b6560;&quot;>Telegram Bot + Web</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 랄프 워크플로우 -->
+    <div>
+      <p style=&quot;font-size: 10pt; color: #6b6560; font-weight: 500; margin-bottom: 16pt;&quot;>랄프 운영 방식</p>
+      <div style=&quot;background: #2d2a26; border-radius: 12pt; padding: 24pt; height: 100%;&quot;>
+        <div style=&quot;display: flex; flex-direction: column; gap: 14pt;&quot;>
+          <div style=&quot;display: flex; align-items: flex-start; gap: 10pt;&quot;>
+            <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2pt;&quot;>
+              <p style=&quot;color: #fff; font-size: 9pt; font-weight: 700;&quot;>1</p>
+            </div>
+            <div>
+              <p style=&quot;font-size: 12pt; font-weight: 500; color: #fff;&quot;>메타대화 스킬로 검증</p>
+              <p style=&quot;font-size: 10pt; color: #6b6560;&quot;>28세션 직접 사용 → 코어 확인</p>
+            </div>
+          </div>
+          <div style=&quot;display: flex; align-items: flex-start; gap: 10pt;&quot;>
+            <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2pt;&quot;>
+              <p style=&quot;color: #fff; font-size: 9pt; font-weight: 700;&quot;>2</p>
+            </div>
+            <div>
+              <p style=&quot;font-size: 12pt; font-weight: 500; color: #fff;&quot;>Claude Code 풀 스펙 설계</p>
+              <p style=&quot;font-size: 10pt; color: #6b6560;&quot;>18파일 스펙 자동 생성 + 리뷰</p>
+            </div>
+          </div>
+          <div style=&quot;display: flex; align-items: flex-start; gap: 10pt;&quot;>
+            <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2pt;&quot;>
+              <p style=&quot;color: #fff; font-size: 9pt; font-weight: 700;&quot;>3</p>
+            </div>
+            <div>
+              <p style=&quot;font-size: 12pt; font-weight: 500; color: #fff;&quot;>5번의 핵심 전환</p>
+              <p style=&quot;font-size: 10pt; color: #6b6560;&quot;>호기심/FOMO 분리, 에센스 언어, 멀티채널</p>
+            </div>
+          </div>
+          <div style=&quot;display: flex; align-items: flex-start; gap: 10pt;&quot;>
+            <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2pt;&quot;>
+              <p style=&quot;color: #fff; font-size: 9pt; font-weight: 700;&quot;>4</p>
+            </div>
+            <div>
+              <p style=&quot;font-size: 12pt; font-weight: 500; color: #fff;&quot;>랄프루프로 빌드</p>
+              <p style=&quot;font-size: 10pt; color: #6b6560;&quot;>eval 통과까지 자동 반복 수정</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="9" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-09.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #2d2a26;
+      padding: 48pt;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <!-- 로고 -->
+  <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+    <div style=&quot;width: 20pt; height: 20pt; background: #c45a3b; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+      <p style=&quot;color: #fff; font-size: 11pt; font-weight: 700;&quot;>d</p>
+    </div>
+    <p style=&quot;font-size: 12pt; font-weight: 600; color: #ffffff;&quot;>droppi</p>
+  </div>
+
+  <!-- 메인 -->
+  <div>
+    <p style=&quot;font-size: 14pt; color: #6b6560; margin-bottom: 16pt; line-height: 1.6;&quot;>
+      취향도, 글도, 관계도 —
+    </p>
+    <h1 style=&quot;font-size: 40pt; font-weight: 500; color: #ffffff; letter-spacing: -0.02em; line-height: 1.3;&quot;>
+      나를 건들였던 모든 것이<br>나를 알게 해준다.
+    </h1>
+    <p style=&quot;font-size: 18pt; color: #c45a3b; margin-top: 24pt; font-weight: 400;&quot;>
+      뭐든 넣으면 당신이 보입니다.
+    </p>
+  </div>
+
+  <!-- 팀 정보 -->
+  <div style=&quot;display: flex; gap: 48pt;&quot;>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #6b6560; margin-bottom: 4pt;&quot;>Team</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ffffff;&quot;>Gowider</p>
+    </div>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #6b6560; margin-bottom: 4pt;&quot;>GitHub</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ffffff;&quot;>psh10066/ralphthon</p>
+    </div>
+  </div>
+</body>
+</html>
+" sandbox="allow-same-origin"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL = 9;
+    let current = 1;
+
+    const frames = document.querySelectorAll('.slide-frame');
+    const counter = document.getElementById('counter');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const scaler = document.getElementById('scaler');
+    const viewport = document.getElementById('viewport');
+
+    function goTo(n) {
+      n = Math.max(1, Math.min(TOTAL, n));
+      if (n === current) return;
+      frames[current - 1].classList.remove('active');
+      current = n;
+      frames[current - 1].classList.add('active');
+      counter.textContent = current + ' / ' + TOTAL;
+      btnPrev.disabled = current === 1;
+      btnNext.disabled = current === TOTAL;
+    }
+
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    btnPrev.addEventListener('click', prev);
+    btnNext.addEventListener('click', next);
+    btnPrev.disabled = true;
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+      else if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+      else if (e.key === 'End') { e.preventDefault(); goTo(TOTAL); }
+      else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    // Fullscreen
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    document.getElementById('btn-fs').addEventListener('click', toggleFullscreen);
+
+    // Auto-scale to fit viewport (95% fit)
+    function rescale() {
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+      const slideW = scaler.offsetWidth;
+      const slideH = scaler.offsetHeight;
+      const scale = Math.min(vw / slideW, vh / slideH) * 0.95;
+      scaler.style.transform = 'scale(' + scale + ')';
+    }
+
+    window.addEventListener('resize', rescale);
+    document.addEventListener('fullscreenchange', () => setTimeout(rescale, 100));
+    rescale();
+  </script>
+</body>
+</html>
