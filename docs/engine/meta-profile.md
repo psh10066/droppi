@@ -203,7 +203,7 @@ Supabase 테이블에 분산 저장. MetaProfile은 클라이언트에서 여러
 // essenceHistory  → essence_profiles 테이블 (전체 이력)
 // insights        → insights 테이블
 // sessions        → sessions + messages 테이블
-// topography      → topography_clusters 테이블
+// themes         → theme_clusters 테이블
 // timeline        → 각 테이블의 created_at 기반 조합
 ```
 

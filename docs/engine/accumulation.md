@@ -147,47 +147,38 @@ interface TensionItem {
 
 ---
 
-## 지형도 (Topographic Map)
+## 주제 클러스터 (Theme Clusters)
 
-인사이트들이 쌓이면서 생기는 의미의 지형. 어떤 영역을 많이 탐색했는지 한눈에 보여준다.
+읽기가 쌓이면서 비슷한 것끼리 묶이는 구조. 세션 날짜별이 아니라 주제별로 축적된다.
+
+### 인터페이스
 
 ```typescript
-interface TopographyData {
-  clusters: TopographyCluster[];
-  connections: TopographyConnection[];
-  updatedAt: string;
-}
-
-interface TopographyCluster {
+interface ThemeCluster {
   id: string;
-  label: string;              // "닫는 것에 대한 고민"
+  label: string;              // "안전한 구석" (사용자 언어에서)
   keywords: string[];
-  insightCount: number;
-  elevation: number;          // 0-10, insightCount 기반
+  readingIds: string[];
+  readingCount: number;
+  conversationCount: number;
   recentActivity: string;
-  insights: InsightLog[];
-  connectedEssence?: string;
-}
-
-interface TopographyConnection {
-  from: string;
-  to: string;
-  strength: number;  // 0-1, 공유 키워드/인사이트 기반
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
 ### 생성 로직
-1. 모든 InsightLog에서 키워드 추출
-2. 키워드 유사도 기반 클러스터링 (LLM)
-3. 인사이트 수 = elevation
-4. 공유 키워드 = connection strength
-5. 시간에 따른 elevation 변화 추적
+1. 새 읽기의 태그에서 키워드 추출
+2. 기존 주제의 키워드와 의미 유사도 비교 (LLM)
+3. 유사도 높으면 기존 주제에 추가
+4. 없으면 새 읽기로 대기
+5. 3개 이상 읽기가 모이면 주제로 승격
 
 ### 클러스터링 규칙
-- 키워드가 아니라 "의미"로 묶는다. "완성", "마무리", "Closer 근육" → 같은 클러스터
+- 키워드가 아니라 "의미"로 묶는다
 - 라벨은 사용자의 언어에서 가져온다
-- 3개 이상의 인사이트가 모여야 클러스터로 인정
-- 두 클러스터에 모두 속하는 인사이트가 있으면 연결
+- 3개 이상의 읽기가 모여야 주제로 인정
+- 한 읽기가 여러 주제에 속할 수 있음
 
 ---
 

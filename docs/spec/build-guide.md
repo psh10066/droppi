@@ -18,7 +18,7 @@ Phase 3: 대화 엔진
   /api/chat 구현 → 프롬프트 삽입 → eval 실행 → 통과까지 반복
       ↓
 Phase 4: 축적 엔진
-  /api/profile, /api/topography → eval 실행
+  /api/profile, /api/themes → eval 실행
       ↓
 Phase 5: 화면 조립
   랜딩 → 홈 → 대화 UI → 프로필 → 세션 로그
@@ -154,8 +154,8 @@ eval 2-3 (에센스 연결):
 |------|----------|
 | 인사이트 저장 | Supabase insights 테이블에 저장 |
 | 패턴 감지 | 3개+ 인사이트 → 패턴 자동 감지 |
-| 지형도 데이터 생성 | `GET /api/topography` 동작 |
-| 세션 관리 | `GET /api/sessions` 동작 |
+| 주제 클러스터 생성 | `GET /api/themes` 동작 |
+| 세션 관리 | `GET /api/sessions` 동작, `GET /api/themes` 동작 |
 | **eval 실행** | `spec/eval.md` 섹션 3 전체 |
 
 **Eval-Fix 루프 상세**:
@@ -165,7 +165,7 @@ eval 3-1 (패턴 감지):
   각각 별개로 처리됨 → 클러스터링 프롬프트에 "의미가 같으면 하나로" 강화
   키워드만 나열 → "사용자의 언어로 라벨링" 규칙 강화
 
-eval 3-2 (지형도):
+eval 3-2 (주제 클러스터):
   1개짜리 클러스터 → "최소 3개 인사이트" 규칙 확인
   모든 클러스터가 연결 → 연결 강도 threshold 조정
 ```
@@ -179,8 +179,8 @@ eval 3-2 (지형도):
 | 랜딩 (퍼널 3섹션 + 업로드 + 로딩 + 에센스) | `spec/funnel.md`, `spec/screens.md` |
 | 홈 | `spec/screens.md` 홈 섹션 |
 | 대화 UI | `design/components.md` 대화 버블, 인사이트 카드 |
-| 프로필 + 지형도 | `design/components.md` 지형도, 타임라인 |
-| 세션 로그 | `spec/screens.md` 세션 로그 |
+| 프로필 + 주제 | `design/components.md` 타임라인 |
+| 주제 모음 | `spec/screens.md` 주제 모음 |
 | 공유 이미지 생성 | `spec/api.md` POST /api/share |
 
 **eval**: `spec/eval.md` 섹션 4 (수동 UI/UX 체크리스트)

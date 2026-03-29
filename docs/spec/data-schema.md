@@ -85,19 +85,38 @@ create table insights (
 );
 ```
 
-### topography_clusters
+### theme_clusters
 
-축적 지형도 클러스터.
+주제 클러스터.
 
 ```sql
-create table topography_clusters (
+create table theme_clusters (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
-  label text not null,                 -- "닫는 것"
-  height integer default 0,           -- 인사이트 개수 = 높이
-  insights text[],                     -- 인사이트 텍스트 배열
-  keywords text[],                     -- ["#완성", "#마무리"]
+  label text not null,                 -- "안전한 구석"
+  reading_ids uuid[],                  -- 이 주제에 속한 읽기 ID들
+  keywords text[],                     -- ["#안전", "#구석"]
+  created_at timestamptz default now(),
   updated_at timestamptz default now()
+);
+```
+
+### readings
+
+읽기 결과 단위.
+
+```sql
+create table readings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  session_id uuid references sessions(id),  -- 대화가 있으면 연결
+  input_type text not null check (input_type in ('image', 'text', 'link', 'memo')),
+  input_preview text,                  -- "카페 사진", "아티클 제목"
+  insight text,                        -- "등 뒤가 막혀있어야 안심이 되는 거 아닐까"
+  observation text,                    -- 관찰 사실
+  tags text[],                         -- ["#안전한구석", "#관찰자"]
+  had_conversation boolean default false,
+  created_at timestamptz default now()
 );
 ```
 
@@ -118,7 +137,7 @@ create policy "Users can insert own insights"
   on insights for insert with check (user_id = auth.uid());
 ```
 
-동일한 패턴을 `essence_profiles`, `sessions`, `messages`, `topography_clusters`에 적용.
+동일한 패턴을 `essence_profiles`, `sessions`, `messages`, `theme_clusters`, `readings`에 적용.
 
 ---
 
@@ -205,13 +224,26 @@ interface Insight {
   created_at: string;
 }
 
-interface TopographyCluster {
+interface ThemeCluster {
   id: string;
   user_id: string;
   label: string;
-  height: number;
-  insights: string[];
+  reading_ids: string[];
   keywords: string[];
+  created_at: string;
   updated_at: string;
+}
+
+interface Reading {
+  id: string;
+  user_id: string;
+  session_id?: string;
+  input_type: "image" | "text" | "link" | "memo";
+  input_preview: string;
+  insight: string;
+  observation: string;
+  tags: string[];
+  had_conversation: boolean;
+  created_at: string;
 }
 ```
