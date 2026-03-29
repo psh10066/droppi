@@ -37,7 +37,7 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <div className="max-w-[640px] mx-auto px-5 pt-4 pb-20">
+      <div className="max-w-[1200px] mx-auto px-5 md:px-10 pt-4 pb-20">
         <h1 className="text-[13px] text-[#707980] mb-4">나의 에센스</h1>
 
         {essence ? (

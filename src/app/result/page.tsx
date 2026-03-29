@@ -92,6 +92,7 @@ export default function ResultPage() {
     localStorage.setItem(`droppi_session_${sessionId}`, JSON.stringify({
       type: drop?.type || "text",
       content: drop?.content?.slice(0, 100) || "",
+      imageUrl: drop?.type === "image" ? drop.content : undefined,
       createdAt: new Date().toISOString(),
       result,
     }));
@@ -126,8 +127,14 @@ export default function ResultPage() {
 
   if (!result) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-[#707980]">다시 시도해주세요.</p>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-5">
+        <p className="text-[#707980]">읽지 못했어요.</p>
+        <button
+          onClick={() => router.push("/")}
+          className="text-[14px] text-[#040000] underline underline-offset-4"
+        >
+          홈으로 돌아가기
+        </button>
       </div>
     );
   }
@@ -137,7 +144,7 @@ export default function ResultPage() {
   return (
     <>
       <Header />
-      <div className="max-w-[640px] mx-auto px-5 pt-4 pb-12">
+      <div className="max-w-[800px] mx-auto px-5 pt-4 pb-12">
         {drop?.type === "image" && drop.content && (
           <div className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-10">
             <img src={drop.content} alt="" className="w-full h-full object-cover" />
@@ -226,7 +233,18 @@ export default function ResultPage() {
         </button>
 
         <button
-          onClick={() => router.push("/home")}
+          onClick={() => {
+            // 스킵해도 읽기 결과는 저장
+            const skipId = crypto.randomUUID();
+            localStorage.setItem(`droppi_session_${skipId}`, JSON.stringify({
+              type: drop?.type || "text",
+              content: drop?.content?.slice(0, 100) || "",
+              imageUrl: drop?.type === "image" ? drop.content : undefined,
+              createdAt: new Date().toISOString(),
+              result,
+            }));
+            router.push("/home");
+          }}
           className="block w-full text-center text-[13px] text-[#707980]/50"
         >
           그냥 넘어갈래요

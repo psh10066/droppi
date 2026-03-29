@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
+import BottomNav from "@/components/BottomNav";
 
 const notoSerifKR = Noto_Serif_KR({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
         style={{ fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif" }}
       >
         {children}
+        <BottomNav />
       </body>
     </html>
   );
