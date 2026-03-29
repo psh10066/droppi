@@ -89,10 +89,13 @@ export default function ResultPage() {
       { role: "assistant", content: `${result?.insight}\n\n${result?.question}` },
       { role: "user", content: answer.trim() },
     ];
+    if (drop?.type === "image" && drop.content) {
+      localStorage.setItem(`droppi_image_${sessionId}`, drop.content);
+    }
     localStorage.setItem(`droppi_session_${sessionId}`, JSON.stringify({
       type: drop?.type || "text",
       content: drop?.content?.slice(0, 100) || "",
-      imageUrl: drop?.type === "image" ? drop.content : undefined,
+      hasImage: drop?.type === "image",
       createdAt: new Date().toISOString(),
       result,
     }));
@@ -236,10 +239,13 @@ export default function ResultPage() {
           onClick={() => {
             // 스킵해도 읽기 결과는 저장
             const skipId = crypto.randomUUID();
+            if (drop?.type === "image" && drop.content) {
+              localStorage.setItem(`droppi_image_${skipId}`, drop.content);
+            }
             localStorage.setItem(`droppi_session_${skipId}`, JSON.stringify({
               type: drop?.type || "text",
               content: drop?.content?.slice(0, 100) || "",
-              imageUrl: drop?.type === "image" ? drop.content : undefined,
+              hasImage: drop?.type === "image",
               createdAt: new Date().toISOString(),
               result,
             }));

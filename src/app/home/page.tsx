@@ -38,8 +38,8 @@ export default function Home() {
     const loaded = keys.map((key) => {
       const id = key.replace("droppi_session_", "");
       const data = JSON.parse(localStorage.getItem(key) || "{}");
-      const dropContent = data.type === "image" ? data.content : null;
-      return { id, type: data.type || "text", createdAt: data.createdAt || "", result: data.result, imageUrl: dropContent || data.imageUrl };
+      const imageUrl = data.hasImage ? localStorage.getItem(`droppi_image_${id}`) : (data.imageUrl || null);
+      return { id, type: data.type || "text", createdAt: data.createdAt || "", result: data.result, imageUrl };
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setSessions(loaded);
 
