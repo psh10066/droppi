@@ -176,14 +176,23 @@ eval 3-2 (주제 클러스터):
 
 | 작업 | 참조 |
 |------|------|
-| 랜딩 (퍼널 3섹션 + 업로드 + 로딩 + 에센스) | `spec/funnel.md`, `spec/screens.md` |
-| 홈 | `spec/screens.md` 홈 섹션 |
+| 글로벌 레이아웃 (헤더, 하단탭, 반응형) | `design/components.md` 헤더, 하단 탭 |
+| 랜딩 (풀스크린, 블랙 pill 버튼, 예시 카드) | `spec/screens.md`, `spec/funnel.md` |
+| 읽기 결과 (인사이트 + 관찰 + 태그 + 자유입력 + 스킵) | `spec/screens.md` |
+| 홈 (drop 입력 + 최근 읽기 + 주제 모음 칩) | `spec/screens.md` |
+| 세션 (매거진 그리드 전체 목록) | `spec/screens.md`, `design/components.md` 세션 카드 |
 | 대화 UI | `design/components.md` 대화 버블, 인사이트 카드 |
-| 프로필 + 주제 | `design/components.md` 타임라인 |
-| 주제 모음 | `spec/screens.md` 주제 모음 |
+| 주제 (폴더 카드 스택) | `spec/screens.md`, `design/components.md` 주제 폴더 카드 |
+| 프로필 (에센스 + 흐름 + 발견 + 태그) | `spec/screens.md` |
 | 공유 이미지 생성 | `spec/api.md` POST /api/share |
 
 **eval**: `spec/eval.md` 섹션 4 (수동 UI/UX 체크리스트)
+
+### 목업 참조
+
+`mockup/` 디렉토리에 Next.js 기반 정적 목업이 있다.
+실제 구현 전에 반드시 `npm run dev`로 목업을 띄워 확인한다.
+목업 페이지: `/` (랜딩), `/result` (읽기 결과), `/home` (홈), `/sessions` (세션), `/themes` (주제), `/profile` (프로필)
 
 ### Phase 6: 텔레그램 봇
 

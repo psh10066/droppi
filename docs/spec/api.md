@@ -116,6 +116,29 @@
 }
 ```
 
+### GET `/api/sessions`
+
+전체 읽기 세션 목록 (시간순).
+
+```json
+{
+  "sessions": [
+    {
+      "id": "session_001",
+      "date": "2026-03-28",
+      "inputType": "image",
+      "inputPreview": "카페 구석 자리",
+      "insight": "등 뒤가 막혀있어야 안심이 되는 거 아닐까",
+      "observation": "카페 구석 자리, 낮은 조명",
+      "topicTags": ["공간"],
+      "styleTags": ["따뜻한", "고요한"],
+      "hasImage": true,
+      "hadConversation": true
+    }
+  ]
+}
+```
+
 ### GET `/api/sessions/:id`
 
 세션 상세 — 대화 전문 + 발견 + 패턴.

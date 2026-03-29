@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --warm-white: #EFEEE9;
+  --white: #FFFFFF;
+  --black: #040000;
+  --dark-gray: #45525A;
+  --gray: #707980;
+  --brand-blue: #7A9CB1;
+  --light-blue: #A5B7C5;
+  --olive-green: #C2C9A6;
+  --light-mint: #CFE2CF;
+}
+
+body {
+  background: var(--warm-white);
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
