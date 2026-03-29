@@ -37,6 +37,30 @@
       "type": "file"
     },
     {
+      "path": "src/app/api/chat/route.ts",
+      "accessCount": 18,
+      "lastAccessed": 1774773466274,
+      "type": "file"
+    },
+    {
+      "path": "src/app/page.tsx",
+      "accessCount": 8,
+      "lastAccessed": 1774772891415,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "accessCount": 7,
+      "lastAccessed": 1774772669458,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 7,
+      "lastAccessed": 1774772671035,
+      "type": "file"
+    },
+    {
       "path": "docs/setup.md",
       "accessCount": 6,
       "lastAccessed": 1774749431241,
@@ -49,28 +73,28 @@
       "type": "file"
     },
     {
-      "path": "src/app/api/chat/route.ts",
-      "accessCount": 4,
-      "lastAccessed": 1774755283333,
-      "type": "file"
+      "path": "",
+      "accessCount": 6,
+      "lastAccessed": 1774773312459,
+      "type": "directory"
     },
     {
       "path": "src/app/layout.tsx",
-      "accessCount": 4,
-      "lastAccessed": 1774767762379,
+      "accessCount": 5,
+      "lastAccessed": 1774772393886,
       "type": "file"
     },
     {
-      "path": "src/app/page.tsx",
-      "accessCount": 4,
-      "lastAccessed": 1774767803142,
+      "path": "src/lib/anthropic.ts",
+      "accessCount": 5,
+      "lastAccessed": 1774772585953,
       "type": "file"
     },
     {
-      "path": "",
-      "accessCount": 3,
-      "lastAccessed": 1774745686213,
-      "type": "directory"
+      "path": "next.config.mjs",
+      "accessCount": 5,
+      "lastAccessed": 1774772693628,
+      "type": "file"
     },
     {
       "path": "docs/deeplinks.md",
@@ -97,18 +121,6 @@
       "type": "file"
     },
     {
-      "path": "src/lib/supabase.ts",
-      "accessCount": 3,
-      "lastAccessed": 1774755288749,
-      "type": "file"
-    },
-    {
-      "path": "src/lib/anthropic.ts",
-      "accessCount": 3,
-      "lastAccessed": 1774755289035,
-      "type": "file"
-    },
-    {
       "path": "src/lib/telegram.ts",
       "accessCount": 3,
       "lastAccessed": 1774755289417,
@@ -127,21 +139,21 @@
       "type": "file"
     },
     {
-      "path": "src/app/components/VoiceButton.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1774744687514,
+      "path": "docs/spec/data-schema.md",
+      "accessCount": 3,
+      "lastAccessed": 1774772373782,
       "type": "file"
     },
     {
       "path": "docs/spec/product.md",
-      "accessCount": 2,
-      "lastAccessed": 1774749493791,
+      "accessCount": 3,
+      "lastAccessed": 1774773318294,
       "type": "file"
     },
     {
-      "path": "docs/spec/data-schema.md",
+      "path": "src/app/components/VoiceButton.tsx",
       "accessCount": 2,
-      "lastAccessed": 1774749495141,
+      "lastAccessed": 1774744687514,
       "type": "file"
     },
     {
@@ -169,21 +181,9 @@
       "type": "file"
     },
     {
-      "path": "package.json",
-      "accessCount": 2,
-      "lastAccessed": 1774754061616,
-      "type": "file"
-    },
-    {
       "path": "tsconfig.json",
       "accessCount": 2,
       "lastAccessed": 1774754063770,
-      "type": "file"
-    },
-    {
-      "path": "next.config.mjs",
-      "accessCount": 2,
-      "lastAccessed": 1774754065179,
       "type": "file"
     },
     {
@@ -196,6 +196,18 @@
       "path": ".npmrc",
       "accessCount": 2,
       "lastAccessed": 1774754071071,
+      "type": "file"
+    },
+    {
+      "path": "docs/spec/eval.md",
+      "accessCount": 2,
+      "lastAccessed": 1774772096556,
+      "type": "file"
+    },
+    {
+      "path": "docs/spec/funnel.md",
+      "accessCount": 2,
+      "lastAccessed": 1774773319019,
       "type": "file"
     },
     {
@@ -250,18 +262,6 @@
       "path": "docs/engine/accumulation.md",
       "accessCount": 1,
       "lastAccessed": 1774749497271,
-      "type": "file"
-    },
-    {
-      "path": "docs/spec/funnel.md",
-      "accessCount": 1,
-      "lastAccessed": 1774749505323,
-      "type": "file"
-    },
-    {
-      "path": "docs/spec/eval.md",
-      "accessCount": 1,
-      "lastAccessed": 1774749505419,
       "type": "file"
     },
     {
