@@ -187,7 +187,7 @@ function ChatContent() {
 
       <div className="border-t border-[#040000]/8 px-5 py-3 bg-[#EFEEE9]">
         <div className="max-w-[640px] mx-auto flex items-end gap-2">
-          <button onClick={() => fileRef.current?.click()} disabled={isSending} className="text-[#707980] shrink-0 pb-1">📷</button>
+          <button onClick={() => fileRef.current?.click()} disabled={isSending} className="text-[#707980] shrink-0 pb-1 text-[24px]">📷</button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSend} />
           <div className="flex-1 border border-[#040000]/12 rounded-lg bg-white px-4 py-2.5">
             <input
@@ -203,7 +203,7 @@ function ChatContent() {
           <button
             onClick={handleSend}
             disabled={!text.trim() || isSending}
-            className={`shrink-0 pb-1 text-[18px] ${text.trim() && !isSending ? "text-[#040000]" : "text-[#707980]/30"}`}
+            className={`shrink-0 pb-1 text-[28px] ${text.trim() && !isSending ? "text-[#040000]" : "text-[#707980]/30"}`}
           >
             →
           </button>

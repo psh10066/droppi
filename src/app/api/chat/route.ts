@@ -85,7 +85,12 @@ async function scrapeUrl(url: string): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { input, essence, history } = await request.json();
+    const body = await request.json();
+    const { input, essence, history, insightLog } = body;
+
+    if (!input || !input.content) {
+      return NextResponse.json({ message: "입력이 필요해요.", type: "question", insight: null });
+    }
 
     let processedContent = input.content;
     let linkWarning: string | null = null;
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest) {
       } else {
         try {
           const aiResearch = await anthropic.messages.create({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-opus-4-20250514",
             max_tokens: 500,
             messages: [
               {
@@ -139,17 +144,18 @@ export async function POST(request: NextRequest) {
       ? `\n\n## 사용자 에센스 프로필\n${JSON.stringify(essence, null, 2)}`
       : "";
 
+    const insightContext = insightLog && insightLog.length > 0
+      ? `\n\n## 이전 대화에서 축적된 발견\n${JSON.stringify(insightLog, null, 2)}\n\n이전 발견과 연결되는 부분이 있으면 자연스럽게 언급해주세요.`
+      : "";
+
     const historyMessages = (history || []).map((h: any) => ({
       role: h.role as "user" | "assistant",
       content: h.content,
     }));
 
-    // 턴 수 계산 (유저 메시지 수 기준)
     const turnCount = historyMessages.filter((m: any) => m.role === "user").length + 1;
     const turnContext = `\n\n## 현재 상태\n현재 ${turnCount}턴째입니다. 턴별 전략을 따르세요.`;
 
-    // 첫 턴: 히스토리 + 입력 타입 컨텍스트 포함 새 메시지
-    // 이어지는 턴: 히스토리만 (마지막 유저 메시지가 이미 포함됨)
     const isFirstTurn = historyMessages.length <= 2;
     const messages = isFirstTurn
       ? [
@@ -162,10 +168,10 @@ export async function POST(request: NextRequest) {
       : historyMessages;
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-opus-4-20250514",
       max_tokens: 1000,
       temperature: 0.7,
-      system: DIALOGUE_SYSTEM_PROMPT + essenceContext + turnContext,
+      system: DIALOGUE_SYSTEM_PROMPT + essenceContext + insightContext + turnContext,
       messages,
     });
 

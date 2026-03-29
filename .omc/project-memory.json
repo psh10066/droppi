@@ -31,15 +31,15 @@
   "directoryMap": {},
   "hotPaths": [
     {
-      "path": "CLAUDE.md",
-      "accessCount": 19,
-      "lastAccessed": 1774749428661,
+      "path": "src/app/api/chat/route.ts",
+      "accessCount": 21,
+      "lastAccessed": 1774773637900,
       "type": "file"
     },
     {
-      "path": "src/app/api/chat/route.ts",
-      "accessCount": 18,
-      "lastAccessed": 1774773466274,
+      "path": "CLAUDE.md",
+      "accessCount": 19,
+      "lastAccessed": 1774749428661,
       "type": "file"
     },
     {
