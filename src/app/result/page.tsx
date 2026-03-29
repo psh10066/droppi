@@ -18,35 +18,18 @@ interface ReadingResult {
 
 export default function ResultPage() {
   const router = useRouter();
-  const [drop, setDrop] = useState<{ type: string; content: string; images?: string[] } | null>(null);
+  const [drop, setDrop] = useState<{ type: string; content: string } | null>(null);
   const [result, setResult] = useState<ReadingResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
   const [answer, setAnswer] = useState("");
   const [showDimensions, setShowDimensions] = useState<string | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [imageOpacity, setImageOpacity] = useState(1);
 
   const loadingSteps = drop?.type === "image"
     ? ["뭐가 찍혀있는지 보는 중", "왜 이걸 골랐을지 생각 중", "당신의 말로 옮기는 중"]
     : drop?.type === "link"
     ? ["어떤 내용인지 읽는 중", "뭐가 걸렸을지 생각 중", "당신의 말로 옮기는 중"]
     : ["어떤 생각인지 읽는 중", "왜 지금 이게 떠올랐을지 생각 중", "당신의 말로 옮기는 중"];
-
-  const images: string[] = drop?.images || (drop?.content ? [drop.content] : []);
-
-  // 다중 이미지 로테이션 (로딩 중에만)
-  useEffect(() => {
-    if (!loading || images.length <= 1) return;
-    const rotateTimer = setInterval(() => {
-      setImageOpacity(0);
-      setTimeout(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % images.length);
-        setImageOpacity(1);
-      }, 400);
-    }, 3000);
-    return () => clearInterval(rotateTimer);
-  }, [loading, images.length]);
 
   useEffect(() => {
     const stored = localStorage.getItem("droppi_drop");
@@ -61,7 +44,7 @@ export default function ResultPage() {
     const analyze = async () => {
       try {
         const body = parsed.type === "image"
-          ? { images: parsed.images || [parsed.content] }
+          ? { images: [parsed.content] }
           : { images: [], text: parsed.content, inputType: parsed.type };
 
         const res = await fetch("/api/analyze", {
@@ -109,7 +92,7 @@ export default function ResultPage() {
     localStorage.setItem(`droppi_session_${sessionId}`, JSON.stringify({
       type: drop?.type || "text",
       content: drop?.content?.slice(0, 100) || "",
-      images: drop?.images || (drop?.type === "image" && drop?.content ? [drop.content] : undefined),
+      imageUrl: drop?.type === "image" ? drop.content : undefined,
       createdAt: new Date().toISOString(),
       result,
     }));
@@ -120,26 +103,9 @@ export default function ResultPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-5">
-        {drop?.type === "image" && images.length > 0 && (
-          <div className="relative w-[200px] aspect-[4/3] rounded-lg overflow-hidden mb-10">
-            <img
-              src={images[currentImageIndex]}
-              alt=""
-              className="w-full h-full object-cover transition-opacity duration-400"
-              style={{ opacity: imageOpacity }}
-            />
-            {images.length > 1 && (
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
-                {images.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                      i === currentImageIndex ? "bg-white" : "bg-white/40"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
+        {drop?.type === "image" && drop.content && (
+          <div className="w-[200px] aspect-[4/3] rounded-lg overflow-hidden mb-10">
+            <img src={drop.content} alt="" className="w-full h-full object-cover" />
           </div>
         )}
         <p className="text-[16px] text-[#040000] mb-8">읽고 있어요...</p>
@@ -161,8 +127,14 @@ export default function ResultPage() {
 
   if (!result) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-[#707980]">다시 시도해주세요.</p>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-5">
+        <p className="text-[#707980]">읽지 못했어요.</p>
+        <button
+          onClick={() => router.push("/")}
+          className="text-[14px] text-[#040000] underline underline-offset-4"
+        >
+          홈으로 돌아가기
+        </button>
       </div>
     );
   }
@@ -172,21 +144,11 @@ export default function ResultPage() {
   return (
     <>
       <Header />
-      <div className="max-w-[640px] mx-auto px-5 pt-4 pb-12">
-        {drop?.type === "image" && images.length > 0 && (
-          images.length === 1 ? (
-            <div className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-10">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-10 -mx-5 px-5">
-              {images.map((img, i) => (
-                <div key={i} className="flex-shrink-0 w-[70%] aspect-[4/3] rounded-lg overflow-hidden">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          )
+      <div className="max-w-[800px] mx-auto px-5 pt-4 pb-12">
+        {drop?.type === "image" && drop.content && (
+          <div className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-10">
+            <img src={drop.content} alt="" className="w-full h-full object-cover" />
+          </div>
         )}
 
         <p className="text-[13px] text-[#707980] mb-5">이렇게 읽어봤어요.</p>
@@ -271,7 +233,18 @@ export default function ResultPage() {
         </button>
 
         <button
-          onClick={() => router.push("/home")}
+          onClick={() => {
+            // 스킵해도 읽기 결과는 저장
+            const skipId = crypto.randomUUID();
+            localStorage.setItem(`droppi_session_${skipId}`, JSON.stringify({
+              type: drop?.type || "text",
+              content: drop?.content?.slice(0, 100) || "",
+              imageUrl: drop?.type === "image" ? drop.content : undefined,
+              createdAt: new Date().toISOString(),
+              result,
+            }));
+            router.push("/home");
+          }}
           className="block w-full text-center text-[13px] text-[#707980]/50"
         >
           그냥 넘어갈래요

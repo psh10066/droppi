@@ -9,23 +9,17 @@ const tabs = [
   { href: "/profile", label: "프로필" },
 ];
 
-const hiddenPaths = ["/", "/result", "/chat"];
-
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (hiddenPaths.some((p) => pathname === p || (p === "/chat" && pathname.startsWith("/chat")))) {
-    return null;
-  }
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#EFEEE9]/90 backdrop-blur-sm border-t border-[#040000]/8 z-50">
-      <div className="max-w-[960px] mx-auto flex">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#EFEEE9] border-t border-[#040000]/10" style={{ zIndex: 9999 }}>
+      <div className="max-w-[1200px] mx-auto flex">
         {tabs.map((tab) => (
           <Link
             key={tab.label}
             href={tab.href}
-            className={`flex-1 py-3.5 text-center text-[12px] transition-colors ${
+            className={`flex-1 py-4 text-center text-[13px] transition-colors ${
               pathname === tab.href || pathname.startsWith(tab.href + "/")
                 ? "text-[#040000] font-medium"
                 : "text-[#707980]"

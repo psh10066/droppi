@@ -110,14 +110,14 @@ export default function Landing() {
         onChange={handleFileSelect}
       />
 
-      <div className="mt-24 w-full max-w-[640px] overflow-x-auto scrollbar-hide">
+      <div className="mt-24 mb-20 w-full max-w-[640px] overflow-x-auto scrollbar-hide" style={{ position: "relative", zIndex: 10000 }}>
         <div className="flex gap-3 pb-4" style={{ minWidth: "fit-content" }}>
           {[
-            { insight: "안전한 구석에서 전체를 보는 사람", topics: ["공간"], styles: ["고요한"] },
-            { insight: "낡은 것에서 결을 읽는 사람", topics: ["취미"], styles: ["빈티지"] },
-            { insight: "혼자 걷다가 멈추는 곳이 있는 사람", topics: ["여행"], styles: ["느린"] },
-          ].map((card, i) => (
-            <div key={i} className="flex-shrink-0 w-[200px] border border-[#040000]/10 rounded-lg p-5">
+            { id: "example-1", insight: "안전한 구석에서 전체를 보는 사람", topics: ["공간"], styles: ["고요한"] },
+            { id: "example-2", insight: "낡은 것에서 결을 읽는 사람", topics: ["취미"], styles: ["빈티지"] },
+            { id: "example-3", insight: "혼자 걷다가 멈추는 곳이 있는 사람", topics: ["여행"], styles: ["느린"] },
+          ].map((card) => (
+            <button key={card.id} onClick={() => router.push(`/sessions/${card.id}`)} className="flex-shrink-0 w-[200px] border border-[#040000]/10 rounded-lg p-5 text-left hover:border-[#040000]/20 transition-colors">
               <p className="text-[14px] leading-[1.8] mb-4" style={{ fontFamily: "var(--font-serif), serif" }}>
                 &ldquo;{card.insight}&rdquo;
               </p>
@@ -125,7 +125,8 @@ export default function Landing() {
                 {card.topics.map((t) => <Tag key={t} label={t} type="topic" />)}
                 {card.styles.map((t) => <Tag key={t} label={t} type="style" />)}
               </div>
-            </div>
+              <p className="text-[11px] text-[#707980]/50 mt-3">자세히 보기 →</p>
+            </button>
           ))}
         </div>
       </div>
